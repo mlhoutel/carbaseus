@@ -88,7 +88,7 @@ pub fn egui_to_image(image: ColorImage) -> image::RgbImage {
     for (x, y, pixel) in image_buffer.enumerate_pixels_mut() {
         let index = (x as usize) * image.size[0] + (y as usize);
         let tmp_pixels = image.pixels[index];
-        *pixel = image::Rgb([tmp_pixels.r(), tmp_pixels.g(), tmp_pixels.a()]);
+        *pixel = image::Rgb([tmp_pixels.r(), tmp_pixels.g(), tmp_pixels.b()]);
     }
 
     image_buffer
@@ -153,12 +153,12 @@ pub fn image_to_gray(image: &ColorImage) -> ImageSlice {
 }
 
 // Image blur
-pub fn image_blur(image: &ColorImage, _sigma: f32) -> ColorImage {
+pub fn image_blur(image: &ColorImage, sigma: f32) -> ColorImage {
     let temp_image = egui_to_image(image.clone());
 
-    // let output_image = imageops::blur(&temp_image, sigma);
+    let output_image = imageops::blur(&temp_image, sigma);
 
-    image_to_egui(temp_image)
+    image_to_egui(output_image)
 }
 
 pub fn _gray_to_image(buffer: Vec<f32>, row_size: usize, col_size: usize) -> ColorImage {
