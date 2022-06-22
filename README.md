@@ -1,9 +1,30 @@
-# 🦀 Rust Processing
+# carbaseus
 
-[![dependency status](https://deps.rs/repo/github/emilk/eframe_template/status.svg)](https://deps.rs/repo/github/emilk/eframe_template)
-[![Build Status](https://github.com/emilk/eframe_template/workflows/CI/badge.svg)](https://github.com/emilk/eframe_template/actions?workflow=CI)
+[![Version](https://img.shields.io/badge/version-v1.0.0-orange?style=flat-square)](https://deps.rs/repo/github/mlhoutel/carbaseus)
+[![Dependency Status](https://deps.rs/repo/github/mlhoutel/carbaseus/status.svg?style=flat-square)](https://deps.rs/repo/github/mlhoutel/carbaseus)
+[![Project Board](https://img.shields.io/badge/kanban-available-brightgreen?style=flat-square&color=blue)](https://github.com/mlhoutel/carbaseus/projects/1)
+[![Build Status](https://img.shields.io/github/workflow/status/mlhoutel/carbaseus/CI/main?style=flat-square)](https://github.com/mlhoutel/carbaseus/actions?workflow=CI)
+[![License](https://img.shields.io/github/license/mlhoutel/carbaseus?style=flat-square)](https://github.com/carbaseus/Tablatures/blob/main/LICENSE)
 
-Online pipeline for image processing.
+*An online pipeline for image processing.*
+
+```markdown
+*carbaseus (feminine carbasea, neuter carbaseum)* : first/second-declension adjective
+
+1. made of fine linen
+```
+
+Carbaseus is an application designed to be the `canvas` where you can `play and express yourself` with a [/node graph/](https://en.wikipedia.org/wiki/Node_graph_architecture) based environment for doing image processing. 
+
+As such, it must be accessible, easy to use and exhaustive in its functionality.
+
+**Currently, it includes 3 types of nodes/functions:**
+
+- The `input nodes` (entry point for image datas)
+- The `conversion nodes` (transform data from a type to an other)
+- The `processing nodes` (apply a transformation on the datas)
+
+You can plug all these nodes together accordingly with their `input/output type`, and experiment to discover as it goes the results of the treatments.
 
 ## Getting started
 
@@ -21,10 +42,7 @@ On Fedora Rawhide you need to run:
 
 `dnf install clang clang-devel clang-tools-extra speech-dispatcher-devel libxkbcommon-devel pkg-config openssl-devel libxcb-devel`
 
-For running the `build_web.sh` script you also need to install `jq` and `binaryen` with your packet manager of choice.
-
-- https://stedolan.github.io/jq/download/
-- https://github.com/WebAssembly/binaryen/releases/
+For running the `build_web.sh` script you also need to install `jq` and `binaryen` with your packet manager of choice *(or with these github repos releases: [jq](https://stedolan.github.io/jq/download/) - [binaryen](https://github.com/WebAssembly/binaryen/releases/))*
 
 ### Compiling for the web
 
@@ -46,14 +64,6 @@ open http://127.0.0.1:8080/
 
 The finished web app is found in the `docs/` folder (this is so that you can easily share it with [GitHub Pages](https://docs.github.com/en/free-pro-team@latest/github/working-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)). It consists of three files:
 
-- `index.html`: A few lines of HTML, CSS and JS that loads your app. **You need to edit this** (once) to replace `eframe_template` with the name of your crate!
+- `index.html`: A few lines of HTML, CSS and JS that loads your app.
 - `your_crate_bg.wasm`: What the Rust code compiles to.
 - `your_crate.js`: Auto-generated binding between Rust and JS.
-
-You can test the template app at <https://emilk.github.io/eframe_template/>.
-
-## Updating egui
-
-As of 2022, egui is in active development with frequent releases with breaking changes. [eframe_template](https://github.com/emilk/eframe_template/) will be updated in lock-step to always use the latest version of egui.
-
-When updating `egui` and `eframe` it is recommended you do so one version at the time, and read about the changes in [the egui changelog](https://github.com/emilk/egui/blob/master/CHANGELOG.md) and [eframe changelog](https://github.com/emilk/egui/blob/master/eframe/CHANGELOG.md).
