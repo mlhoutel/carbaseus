@@ -1,0 +1,53 @@
+[package]
+name = "carbaseus"
+default-run = "carbaseus_bin"
+version = "0.1.0"
+authors = ["Mael Lhoutellier <mlhoutel@gmail.com>"]
+edition = "2021"
+rust-version = "1.60"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "carbaseus_bin"
+path = "src/main.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[dependencies]
+egui = "0.18.0"
+eframe = { version = "0.18.0", features = ["persistence"] }
+egui_extras = { version = "0.18.0", features = ["image"] }
+serde = { version = "1", features = ["derive"] } # You only need this if you want app persistence
+poll-promise = "0.1.0"
+ehttp = "0.2.0"
+image = { version = "0.24", features = ["jpeg", "png"] }
+rustfft = "6.0.1" 
+egui_node_graph = { git = "https://github.com/setzer22/egui_node_graph", rev = "316baf9" }
+anyhow = "1.0.57"
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tracing-subscriber = "0.3"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.6"
+tracing-wasm = "0.2"
+
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+
+[patch.crates-io]
+
+# If you want to use the bleeding edge version of egui and eframe:
+# egui = { git = "https://github.com/emilk/egui", branch = "master" }
+# eframe = { git = "https://github.com/emilk/egui", branch = "master" }
+
+# If you fork https://github.com/emilk/egui you can test with:
+# egui = { path = "../egui/egui" }
+# eframe = { path = "../egui/eframe" }

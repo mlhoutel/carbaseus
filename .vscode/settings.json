@@ -1,0 +1,4 @@
+{
+  "conventionalCommits.scopes": ["Gui", "Graph", "Global"],
+  "svg.preview.background": "white"
+}
