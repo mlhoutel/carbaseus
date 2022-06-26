@@ -26,6 +26,7 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui, ctx: &egui::Context)
 
             NodeResponse::User(user_event) => match user_event {
                 Response::ImageFetched => true,
+                Response::ScalarChanged => true,
             },
         });
 

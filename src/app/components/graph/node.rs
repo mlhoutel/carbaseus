@@ -137,6 +137,7 @@ pub enum NodeTemplate {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Response {
     ImageFetched,
+    ScalarChanged,
 }
 
 type OutputsCache = HashMap<OutputId, ValueType>;
@@ -364,7 +365,11 @@ impl WidgetValueTrait for ValueType {
             ValueType::Scalar { value } => {
                 ui.horizontal(|ui| {
                     ui.label(param_name);
-                    ui.add(DragValue::new(value));
+
+                    let drag_value = ui.add(DragValue::new(value));
+                    if drag_value.drag_released() || drag_value.lost_focus() {
+                        responses.push(Response::ScalarChanged); // Notify when input image changes
+                    }
                 });
             }
         }
