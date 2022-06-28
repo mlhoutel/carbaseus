@@ -85,7 +85,7 @@ pub fn row_fft(buffer: &mut Vec<Complex<f32>>) {
     fft.process(buffer);
 }
 // Swap opposite diagonal quadrants
-pub fn shift_fft(buffer: &mut Vec<Complex<f32>>, row_size: usize, col_size: usize) {
+pub fn shift_fft(buffer: &mut [Complex<f32>], row_size: usize, col_size: usize) {
     let h_half = (row_size as f32) / 2.0; // horizontal half
     let v_half = (col_size as f32) / 2.0; // vertical half
 

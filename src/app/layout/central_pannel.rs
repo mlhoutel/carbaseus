@@ -1,7 +1,7 @@
 use egui::TextStyle;
 
 use crate::app::components::graph::node::*;
-use crate::app::state;
+use crate::app::state::{self, SelectedNode};
 
 use egui_node_graph::NodeResponse;
 
@@ -34,6 +34,25 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui, ctx: &egui::Context)
             evaluate_graph(&mut state.graph)
         };
     }
+
+    // Check if we need to update the current selected node
+    responses.node_responses.iter().for_each(|&event| {
+        if let NodeResponse::SelectNode(node_id) = event {
+            state.selected_node = SelectedNode::default(); // reset node
+            state.selected_node.node_id = Some(node_id);
+        }
+    });
+
+    // Check if the current node was removed
+    responses.node_responses.iter().for_each(|&event| {
+        if let NodeResponse::DeleteNode(deleted_node) = event {
+            if let Some(current_node) = state.selected_node.node_id {
+                if current_node == deleted_node {
+                    state.selected_node = SelectedNode::default(); // reset node
+                }
+            }
+        }
+    });
 }
 
 pub fn show_state(state: &mut state::AppState, _ui: &mut egui::Ui, ctx: &egui::Context) {
@@ -100,8 +119,8 @@ pub fn show_background(ui: &mut egui::Ui) {
             let size = ui.available_size();
             let start = egui::pos2(next.x + spacing * 0.25, next.y + spacing * 0.25);
 
-            let number_x = (size.x / spacing).ceil() as i32 + 1;
-            let number_y = (size.y / spacing).ceil() as i32 + 1;
+            let number_x = (size.x / spacing).floor() as i32 + 1;
+            let number_y = (size.y / spacing).floor() as i32 + 1;
 
             for x in 0..number_x {
                 for y in 0..number_y {
