@@ -8,6 +8,8 @@
 
 *An online pipeline for image processing.*
 
+![screenshot](docs/screenshot.png)
+
 ```markdown
 *carbaseus (feminine carbasea, neuter carbaseum)* : first/second-declension adjective
 

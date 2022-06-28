@@ -152,6 +152,24 @@ pub fn image_to_gray(image: &ColorImage) -> ImageSlice {
     luma_to_slice(output_image)
 }
 
+pub fn slice_to_image(slice: &ImageSlice) -> ColorImage {
+    let mut image = ColorImage::new(slice.size, Color32::from_rgb(0, 0, 0));
+    let cols: Vec<Color32> = slice
+        .clone()
+        .pixels
+        .into_iter()
+        .map(|px| match slice.color {
+            SliceColor::Red => Color32::from_rgb(px, 0, 0),
+            SliceColor::Green => Color32::from_rgb(0, px, 0),
+            SliceColor::Blue => Color32::from_rgb(0, 0, px),
+            SliceColor::Gray => Color32::from_rgb(px, px, px),
+        })
+        .collect();
+    image.pixels = cols;
+
+    image
+}
+
 // Image blur
 pub fn image_blur(image: &ColorImage, sigma: f32) -> ColorImage {
     let temp_image = egui_to_image(image.clone());

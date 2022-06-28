@@ -27,8 +27,13 @@ const LABEL_SLICE_B_OUT: &str = "slice_b_out";
 const LABEL_SLICE_S_OUT: &str = "slice_s_out";
 
 const LABEL_SCALAR_SIGMA_IN: &str = "scalar_sigma";
-// const LABEL_COLOR_OUT: &str = "color_out";
-// const LABEL_SCALAR_OUT: &str = "scala_out";
+const _LABEL_COLOR_OUT: &str = "color_out";
+const _LABEL_SCALAR_OUT: &str = "scala_out";
+
+pub type _Node = egui_node_graph::Node<NodeData>;
+pub type NodeId = egui_node_graph::id_type::NodeId;
+pub type OutputId = egui_node_graph::id_type::OutputId;
+pub type _InputId = egui_node_graph::id_type::InputId;
 
 // ========= First, define your user data types =============
 
@@ -416,13 +421,25 @@ impl NodeDataTrait for NodeData {
                 if let Some(image) = user_state.outputs_images.get(id) {
                     egui::CollapsingHeader::new(format!("Image for {label}"))
                         .default_open(first_header)
-                        .show(ui, |ui| display::image_frame::show(ui, image));
+                        .show(ui, |ui| {
+                            display::image_frame::show(ui, image);
+                        });
 
                     first_header = false;
                 }
             }
         }
         responses
+    }
+
+    fn titlebar_color(
+        &self,
+        _ui: &egui::Ui,
+        _node_id: NodeId,
+        _graph: &Graph<Self, Self::DataType, Self::ValueType>,
+        _user_state: &Self::UserState,
+    ) -> Option<egui::Color32> {
+        None
     }
 }
 

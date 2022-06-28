@@ -57,6 +57,9 @@ impl eframe::App for App {
 
         egui::SidePanel::left("side_panel").show(ctx, |ui| layout::side_pannel::show(state, ui));
 
+        egui::SidePanel::right("output_pannel")
+            .show(ctx, |ui| layout::output_pannel::show(state, ui));
+
         egui::CentralPanel::default().show(ctx, |ui| layout::central_pannel::show(state, ui, ctx));
 
         if state.first_loop {
