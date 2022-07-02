@@ -15,18 +15,31 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui, ctx: &egui::Context)
     let responses = state.graph.draw_graph_editor(ui, AllNodeTemplates);
 
     if state.auto_compute {
-        let must_refresh = responses.node_responses.iter().find(|&&event| match event {
-            NodeResponse::ConnectEventEnded(_) | NodeResponse::DisconnectEvent(_) => true,
+        let must_refresh = responses.node_responses.iter().find(|&event| match event {
+            NodeResponse::ConnectEventEnded {
+                output: _,
+                input: _,
+            }
+            | NodeResponse::DeleteNodeFull {
+                node_id: _,
+                node: _,
+            }
+            | NodeResponse::DisconnectEvent {
+                output: _,
+                input: _,
+            } => true,
 
             NodeResponse::ConnectEventStarted(_, _)
             | NodeResponse::CreatedNode(_)
             | NodeResponse::SelectNode(_)
-            | NodeResponse::DeleteNode(_)
+            | NodeResponse::DeleteNodeUi(_)
             | NodeResponse::RaiseNode(_) => false,
 
             NodeResponse::User(user_event) => match user_event {
                 Response::ImageFetched => true,
                 Response::ScalarChanged => true,
+                Response::BooleanChanged => true,
+                Response::IntegerChanged => true,
             },
         });
 
@@ -36,18 +49,37 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui, ctx: &egui::Context)
     }
 
     // Check if we need to update the current selected node
-    responses.node_responses.iter().for_each(|&event| {
+    responses.node_responses.iter().for_each(|event| {
         if let NodeResponse::SelectNode(node_id) = event {
             state.selected_node = SelectedNode::default(); // reset node
-            state.selected_node.node_id = Some(node_id);
+            state.selected_node.node_id = Some(*node_id);
+        }
+    });
+
+    // Check if we need to update the current selected node
+    responses.node_responses.iter().for_each(|event| {
+        let mut input_updated = false;
+
+        if let NodeResponse::User(Response::ImageFetched) = event {
+            input_updated = true;
+        }
+
+        if let NodeResponse::User(Response::ScalarChanged) = event {
+            input_updated = true;
+        }
+
+        if input_updated {
+            let temp_selected = state.selected_node.node_id;
+            state.selected_node = SelectedNode::default(); // reset node
+            state.selected_node.node_id = temp_selected; // trigger update
         }
     });
 
     // Check if the current node was removed
-    responses.node_responses.iter().for_each(|&event| {
-        if let NodeResponse::DeleteNode(deleted_node) = event {
+    responses.node_responses.iter().for_each(|event| {
+        if let NodeResponse::DeleteNodeUi(deleted_node) = event {
             if let Some(current_node) = state.selected_node.node_id {
-                if current_node == deleted_node {
+                if current_node == *deleted_node {
                     state.selected_node = SelectedNode::default(); // reset node
                 }
             }
@@ -76,6 +108,8 @@ pub fn show_state(state: &mut state::AppState, _ui: &mut egui::Ui, ctx: &egui::C
             value.b()
         )),
         ValueType::Scalar { value } => Some(format!("Scalar of value {}", value)),
+        ValueType::Integer { value } => Some(format!("Integer of value {}", value)),
+        ValueType::Boolean { value } => Some(format!("Boolean of value {}", value)),
     };
 
     let outputs_cache = state

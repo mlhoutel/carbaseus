@@ -55,9 +55,15 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("top_panel")
             .show(ctx, |ui| layout::top_bar::show(state, ui, ctx));
 
-        egui::SidePanel::left("side_panel").show(ctx, |ui| layout::side_pannel::show(state, ui));
+        egui::SidePanel::left("side_panel")
+            .max_width(180.0)
+            .min_width(180.0)
+            .resizable(false)
+            .show(ctx, |ui| layout::side_pannel::show(state, ui));
 
         egui::SidePanel::right("output_pannel")
+            .min_width(300.0)
+            .max_width(640.0)
             .show(ctx, |ui| layout::output_pannel::show(state, ui));
 
         egui::CentralPanel::default().show(ctx, |ui| layout::central_pannel::show(state, ui, ctx));
