@@ -378,7 +378,8 @@ impl WidgetValueTrait for ValueType {
                 ui.horizontal(|ui| {
                     ui.label(param_name);
 
-                    let drag_value = ui.add(DragValue::new(value));
+                    let drag_value =
+                        ui.add(DragValue::new(value).speed(0.1).clamp_range(0.0..=30.0));
                     if drag_value.drag_released() || drag_value.lost_focus() {
                         responses.push(Response::ScalarChanged); // Notify when input image changes
                     }
