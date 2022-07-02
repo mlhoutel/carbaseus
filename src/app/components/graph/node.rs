@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 use eframe::egui::{self, DragValue};
@@ -170,12 +171,12 @@ impl DataTypeTrait<GraphState> for DataType {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> Cow<'_, str> {
         match self {
-            DataType::Image => "image",
-            DataType::Color => "color",
-            DataType::Slice => "slice",
-            DataType::Scalar => "scalar",
+            DataType::Image => Cow::Borrowed("image"),
+            DataType::Color => Cow::Borrowed("color"),
+            DataType::Slice => Cow::Borrowed("slice"),
+            DataType::Scalar => Cow::Borrowed("scalar"),
         }
     }
 }
@@ -186,6 +187,7 @@ impl NodeTemplateTrait for NodeTemplate {
     type NodeData = NodeData;
     type DataType = DataType;
     type ValueType = ValueType;
+    type UserState = GraphState;
 
     fn node_finder_label(&self) -> &str {
         match self {
@@ -208,7 +210,12 @@ impl NodeTemplateTrait for NodeTemplate {
         NodeData { template: *self }
     }
 
-    fn build_node(&self, graph: &mut Graph<NodeData, DataType, ValueType>, node_id: NodeId) {
+    fn build_node(
+        &self,
+        graph: &mut Graph<NodeData, DataType, ValueType>,
+        _user_state: &Self::UserState,
+        node_id: NodeId,
+    ) {
         // The nodes are created empty by default. This function needs to take
         // care of creating the desired inputs and outputs based on the template
 
@@ -399,16 +406,13 @@ impl NodeDataTrait for NodeData {
         ui: &mut egui::Ui,
         node_id: NodeId,
         _graph: &Graph<NodeData, DataType, ValueType>,
-        user_state: &GraphState,
-    ) -> Vec<NodeResponse<Response>>
-    where
-        Response: UserResponseTrait,
-    {
+        user_state: &Self::UserState,
+    ) -> std::vec::Vec<NodeResponse<Response, NodeData>> {
         // This logic is entirely up to the user. In this case, we check if the
         // current node we're drawing is the active one, by comparing against
         // the value stored in the global user state, and draw different button
         // UIs based on that.
-        let responses: Vec<NodeResponse<Response>> = vec![];
+        let responses: Vec<NodeResponse<Response, NodeData>> = vec![];
 
         let find_node = _graph.nodes.iter().find(|(id, _data)| *id == node_id);
 
@@ -450,7 +454,7 @@ pub fn create_node(state: &mut state::AppState, node_kind: NodeTemplate, pos: eg
     let new_node = state.graph.graph.add_node(
         node_kind.node_graph_label(),
         node_kind.user_data(),
-        |graph, node_id| node_kind.build_node(graph, node_id),
+        |graph, node_id| node_kind.build_node(graph, &state.graph.user_state, node_id),
     );
 
     state.graph.node_positions.insert(new_node, pos);
