@@ -33,12 +33,12 @@ impl Default for AppState {
             graph: node::EditorState::new(1.0, node::GraphState::default()),
             selected_node: SelectedNode::default(),
             first_loop: true,
-            auto_compute: false,
+            auto_compute: true,
 
             // Display
             d_settings: false,
             d_about: false,
-            d_state: true,
+            d_state: false,
             o_pannel: OutputPanel::default(),
         }
     }
