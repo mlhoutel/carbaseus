@@ -9,7 +9,10 @@ use egui_node_graph::*;
 use crate::app::components::display;
 use crate::app::components::input::image_fetcher::Fetcher;
 use crate::app::math::fft;
-use crate::app::math::image::{image_blur, image_to_gray, ImageSlice, SliceColor};
+use crate::app::math::image::{
+    brighten_image, contrast_image, flip_image, hue_rotate_image, image_blur, image_to_gray,
+    invert_colors_image, rotate_image, ImageSlice, SliceColor,
+};
 use crate::app::state;
 
 const LABEL_IMAGE_IN: &str = "image_in";
@@ -27,9 +30,14 @@ const LABEL_SLICE_G_OUT: &str = "slice_g_out";
 const LABEL_SLICE_B_OUT: &str = "slice_b_out";
 const LABEL_SLICE_S_OUT: &str = "slice_s_out";
 
+const LABEL_BOOLEAN_H_IN: &str = "input_h_in";
+const LABEL_BOOLEAN_V_IN: &str = "input_v_in";
+
 const LABEL_SCALAR_SIGMA_IN: &str = "scalar_sigma";
 const _LABEL_COLOR_OUT: &str = "color_out";
 const _LABEL_SCALAR_OUT: &str = "scala_out";
+
+const LABEL_INTEGER_SIGMA_IN: &str = "integer_sigma";
 
 pub type _Node = egui_node_graph::Node<NodeData>;
 pub type NodeId = egui_node_graph::id_type::NodeId;
@@ -54,6 +62,8 @@ pub enum DataType {
     Slice,
     Color,
     Scalar,
+    Integer,
+    Boolean,
 }
 
 /// In the graph, input parameters can optionally have a constant value. This
@@ -70,6 +80,8 @@ pub enum ValueType {
     Slice { value: ImageSlice },
     _Color { value: Color32 },
     Scalar { value: f32 },
+    Integer { value: i32 },
+    Boolean { value: bool },
 }
 
 impl ValueType {
@@ -103,15 +115,13 @@ impl ValueType {
     }
 
     /// Tries to downcast this value type to a color
-    /*
-    pub fn try_to_color(self) -> anyhow::Result<Color32>{
-        if let ValueType::Color { value } = self {
+    pub fn _try_to_color(self) -> anyhow::Result<Color32> {
+        if let ValueType::_Color { value } = self {
             Ok(value)
         } else {
             anyhow::bail!("Invalid cast to Color32".to_string())
         }
     }
-    */
 
     /// Tries to downcast this value type to a scalar
     pub fn try_to_scalar(self) -> anyhow::Result<f32> {
@@ -121,6 +131,24 @@ impl ValueType {
             anyhow::bail!("Invalid cast to scalar".to_string())
         }
     }
+
+    /// Tries to downcast this value type to a boolean
+    pub fn try_to_boolean(self) -> anyhow::Result<bool> {
+        if let ValueType::Boolean { value } = self {
+            Ok(value)
+        } else {
+            anyhow::bail!("Invalid cast to boolean".to_string())
+        }
+    }
+
+    /// Tries to downcast this value type to an integer
+    pub fn try_to_integer(self) -> anyhow::Result<i32> {
+        if let ValueType::Integer { value } = self {
+            Ok(value)
+        } else {
+            anyhow::bail!("Invalid cast to integer".to_string())
+        }
+    }
 }
 
 /// NodeTemplate is a mechanism to define node templates. It's what the graph
@@ -128,12 +156,23 @@ impl ValueType {
 /// library how to convert a NodeTemplate into a Node.
 #[derive(Clone, Copy)]
 pub enum NodeTemplate {
+    // Input
     ImageFetcher,
+
+    // Transformation
     GrayScales,
-    GaussianBlur,
-    FourierSpace,
     ImageToSlice,
     SliceToImage,
+
+    // Processing
+    GaussianBlur,
+    FourierSpace,
+    BrightenImage,
+    ContrastImage,
+    InvertImage,
+    HueRotate,
+    FlipImage,
+    RotateImage,
 }
 
 /// The response type is used to encode side-effects produced when drawing a
@@ -144,6 +183,8 @@ pub enum NodeTemplate {
 pub enum Response {
     ImageFetched,
     ScalarChanged,
+    IntegerChanged,
+    BooleanChanged,
 }
 
 type OutputsCache = HashMap<OutputId, ValueType>;
@@ -168,6 +209,8 @@ impl DataTypeTrait<GraphState> for DataType {
             DataType::Color => Color32::from_rgb(238, 207, 109),
             DataType::Slice => Color32::from_rgb(214, 65, 10),
             DataType::Scalar => Color32::from_rgb(24, 165, 37),
+            DataType::Integer => Color32::from_rgb(24, 165, 37),
+            DataType::Boolean => Color32::from_rgb(24, 165, 37),
         }
     }
 
@@ -177,6 +220,8 @@ impl DataTypeTrait<GraphState> for DataType {
             DataType::Color => Cow::Borrowed("color"),
             DataType::Slice => Cow::Borrowed("slice"),
             DataType::Scalar => Cow::Borrowed("scalar"),
+            DataType::Integer => Cow::Borrowed("integer"),
+            DataType::Boolean => Cow::Borrowed("boolean"),
         }
     }
 }
@@ -192,11 +237,22 @@ impl NodeTemplateTrait for NodeTemplate {
     fn node_finder_label(&self) -> &str {
         match self {
             NodeTemplate::ImageFetcher => "Image fetcher",
+
             NodeTemplate::GrayScales => "Gray scales",
-            NodeTemplate::GaussianBlur => "Gaussian blur",
-            NodeTemplate::FourierSpace => "Fourier space",
             NodeTemplate::ImageToSlice => "Image to RGB Slice",
             NodeTemplate::SliceToImage => "RGB Slice to Image",
+
+            NodeTemplate::FourierSpace => "Fourier space",
+
+            NodeTemplate::GaussianBlur => "Gaussian blur",
+            NodeTemplate::BrightenImage => "Brighten Image",
+            NodeTemplate::ContrastImage => "Contrast Image",
+
+            NodeTemplate::InvertImage => "Invert Image",
+            NodeTemplate::HueRotate => "Hue Rotate",
+
+            NodeTemplate::FlipImage => "Flip Image",
+            NodeTemplate::RotateImage => "Rotate Image",
         }
     }
 
@@ -284,6 +340,28 @@ impl NodeTemplateTrait for NodeTemplate {
             );
         };
 
+        let input_integer = |graph: &mut ProcessGraph, name: &str| {
+            graph.add_input_param(
+                node_id,
+                name.to_string(),
+                DataType::Integer,
+                ValueType::Integer { value: 0 },
+                InputParamKind::ConstantOnly,
+                true,
+            );
+        };
+
+        let input_boolean = |graph: &mut ProcessGraph, name: &str| {
+            graph.add_input_param(
+                node_id,
+                name.to_string(),  // This is the name of the parameter
+                DataType::Boolean, // The data type for this input
+                ValueType::Boolean { value: false }, // The value type for this input
+                InputParamKind::ConstantOnly, // The input parameter kind.
+                true,
+            );
+        };
+
         let _output_image_flat = |graph: &mut ProcessGraph, _name: &str| {
             graph.add_output_param(node_id, "".to_string(), DataType::Image);
         };
@@ -334,6 +412,36 @@ impl NodeTemplateTrait for NodeTemplate {
                 output_slice(graph, LABEL_SLICE_G_OUT);
                 output_slice(graph, LABEL_SLICE_B_OUT);
             }
+            NodeTemplate::BrightenImage => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_scalar(graph, LABEL_SCALAR_SIGMA_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::ContrastImage => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_scalar(graph, LABEL_SCALAR_SIGMA_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::InvertImage => {
+                input_image(graph, LABEL_IMAGE_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::HueRotate => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_scalar(graph, LABEL_SCALAR_SIGMA_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::FlipImage => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_boolean(graph, LABEL_BOOLEAN_H_IN);
+                input_boolean(graph, LABEL_BOOLEAN_V_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::RotateImage => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_integer(graph, LABEL_INTEGER_SIGMA_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
         }
     }
 }
@@ -354,6 +462,10 @@ impl NodeTemplateIter for AllNodeTemplates {
             NodeTemplate::FourierSpace,
             NodeTemplate::SliceToImage,
             NodeTemplate::ImageToSlice,
+            NodeTemplate::BrightenImage,
+            NodeTemplate::ContrastImage,
+            NodeTemplate::InvertImage,
+            NodeTemplate::HueRotate,
         ]
     }
 }
@@ -379,11 +491,26 @@ impl WidgetValueTrait for ValueType {
                     ui.label(param_name);
 
                     let drag_value =
-                        ui.add(DragValue::new(value).speed(0.1).clamp_range(0.0..=30.0));
+                        ui.add(DragValue::new(value).speed(0.1).clamp_range(0.0..=1000.0));
                     if drag_value.drag_released() || drag_value.lost_focus() {
-                        responses.push(Response::ScalarChanged); // Notify when input image changes
+                        responses.push(Response::ScalarChanged); // Notify when scalar changes
                     }
                 });
+            }
+            ValueType::Integer { value } => {
+                ui.horizontal(|ui| {
+                    ui.label(param_name);
+
+                    let drag_value = ui.add(DragValue::new(value).clamp_range(0.0..=1000.0));
+                    if drag_value.drag_released() || drag_value.lost_focus() {
+                        responses.push(Response::IntegerChanged); // Notify when scalar changes
+                    }
+                });
+            }
+            ValueType::Boolean { value } => {
+                if ui.checkbox(value, param_name).changed() {
+                    responses.push(Response::BooleanChanged); // Notify when boolean changes
+                }
             }
         }
         responses
@@ -552,6 +679,12 @@ pub fn evaluate_node(
         fn input_scalar(&mut self, name: &str) -> anyhow::Result<f32> {
             self.evaluate_input(name)?.try_to_scalar()
         }
+        fn input_integer(&mut self, name: &str) -> anyhow::Result<i32> {
+            self.evaluate_input(name)?.try_to_integer()
+        }
+        fn input_boolean(&mut self, name: &str) -> anyhow::Result<bool> {
+            self.evaluate_input(name)?.try_to_boolean()
+        }
         fn output_image(&mut self, name: &str, value: ColorImage) -> anyhow::Result<ValueType> {
             self.populate_output(name, ValueType::Image { value })
         }
@@ -636,6 +769,54 @@ pub fn evaluate_node(
             let _res_r = evaluator.output_slice(LABEL_SLICE_R_OUT, slice_r);
             let _res_g = evaluator.output_slice(LABEL_SLICE_G_OUT, slice_g);
             evaluator.output_slice(LABEL_SLICE_B_OUT, slice_b)
+        }
+        NodeTemplate::BrightenImage => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let sigma = evaluator.input_scalar(LABEL_SCALAR_SIGMA_IN)?;
+
+            let brightened = brighten_image(&image, sigma);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, brightened)
+        }
+        NodeTemplate::ContrastImage => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let sigma = evaluator.input_scalar(LABEL_SCALAR_SIGMA_IN)?;
+
+            let contrasted = contrast_image(&image, sigma);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, contrasted)
+        }
+        NodeTemplate::InvertImage => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+
+            let inverted = invert_colors_image(&image);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, inverted)
+        }
+        NodeTemplate::HueRotate => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let sigma = evaluator.input_scalar(LABEL_SCALAR_SIGMA_IN)?;
+
+            let rotated = hue_rotate_image(&image, sigma);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, rotated)
+        }
+        NodeTemplate::FlipImage => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let horizontal = evaluator.input_boolean(LABEL_BOOLEAN_H_IN)?;
+            let vertical = evaluator.input_boolean(LABEL_BOOLEAN_V_IN)?;
+
+            let flipped = flip_image(&image, horizontal, vertical);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, flipped)
+        }
+        NodeTemplate::RotateImage => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let sigma = evaluator.input_integer(LABEL_INTEGER_SIGMA_IN)?;
+
+            let rotated = rotate_image(&image, sigma);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, rotated)
         }
     }
 }

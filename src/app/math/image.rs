@@ -202,3 +202,59 @@ pub fn load_image_bytes(image_bytes: &[u8]) -> Option<ColorImage> {
         Err(_) => None,
     }
 }
+
+pub fn brighten_image(image: &ColorImage, sigma: f32) -> ColorImage {
+    let temp_image = egui_to_image(image.clone());
+
+    let output_image = imageops::brighten(&temp_image, sigma as i32);
+
+    image_to_egui(output_image)
+}
+
+pub fn contrast_image(image: &ColorImage, sigma: f32) -> ColorImage {
+    let temp_image = egui_to_image(image.clone());
+
+    let output_image = imageops::contrast(&temp_image, sigma);
+
+    image_to_egui(output_image)
+}
+
+pub fn invert_colors_image(image: &ColorImage) -> ColorImage {
+    let mut output_image = egui_to_image(image.clone());
+
+    imageops::invert(&mut output_image);
+
+    image_to_egui(output_image)
+}
+
+pub fn hue_rotate_image(image: &ColorImage, sigma: f32) -> ColorImage {
+    let temp_image = egui_to_image(image.clone());
+
+    let output_image = imageops::huerotate(&temp_image, sigma as i32);
+
+    image_to_egui(output_image)
+}
+
+pub fn flip_image(image: &ColorImage, horizontal: bool, vertical: bool) -> ColorImage {
+    let mut output_image = egui_to_image(image.clone());
+
+    if horizontal {
+        output_image = imageops::flip_horizontal(&output_image);
+    }
+
+    if vertical {
+        output_image = imageops::flip_vertical(&output_image);
+    }
+
+    image_to_egui(output_image)
+}
+
+pub fn rotate_image(image: &ColorImage, sigma: i32) -> ColorImage {
+    let mut output_image = egui_to_image(image.clone());
+
+    for _ in 0..sigma {
+        output_image = imageops::rotate90(&output_image);
+    }
+
+    image_to_egui(output_image)
+}

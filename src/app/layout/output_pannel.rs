@@ -1,3 +1,4 @@
+use egui::ColorImage;
 use egui_extras::RetainedImage;
 use std::collections::HashMap;
 
@@ -86,7 +87,11 @@ fn show_selected(state: &mut state::AppState, ui: &mut egui::Ui, output_id: Outp
     }
 
     if let Some(retained_image) = &state.selected_node.retained_image {
-        if let Some(_color_image) = &state.selected_node.color_image {
+        if let Some(color_image) = &state.selected_node.color_image {
+            show_image_infos(ui, color_image, retained_image);
+
+            ui.separator();
+
             ui.horizontal(|ui| {
                 ui.selectable_value(
                     &mut state.o_pannel,
@@ -118,4 +123,8 @@ fn show_image_display(ui: &mut egui::Ui, image: &RetainedImage) {
 
 fn show_image_spectrum(ui: &mut egui::Ui, spectrum: &[HashMap<u8, usize>]) {
     display::image_spectrum::show(ui, spectrum);
+}
+
+fn show_image_infos(ui: &mut egui::Ui, image: &ColorImage, retained: &RetainedImage) {
+    display::image_infos::show(ui, image, retained);
 }

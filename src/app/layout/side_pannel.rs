@@ -14,7 +14,7 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui) {
                 });
             });
 
-            full_collapsing("↔ Conversion", ui, |ui| {
+            full_collapsing("↔ Convert", ui, |ui| {
                 if ui.button("▓ Gray scales").clicked() {
                     create_node(state, NodeTemplate::GrayScales, egui::pos2(0.0, 0.0));
                 }
@@ -26,12 +26,30 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui) {
                 }
             });
 
-            full_collapsing("＃ Processing", ui, |ui| {
+            full_collapsing("＃ Process", ui, |ui| {
                 if ui.button("👓 Gaussian blur").clicked() {
                     create_node(state, NodeTemplate::GaussianBlur, egui::pos2(0.0, 0.0));
                 }
                 if ui.button("〰 Fourier space").clicked() {
                     create_node(state, NodeTemplate::FourierSpace, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("🌕 Brighten image").clicked() {
+                    create_node(state, NodeTemplate::BrightenImage, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("🌗 Contrast image").clicked() {
+                    create_node(state, NodeTemplate::ContrastImage, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("🔅 Invert image").clicked() {
+                    create_node(state, NodeTemplate::InvertImage, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("🌈 Hue rotate").clicked() {
+                    create_node(state, NodeTemplate::HueRotate, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("↪ Flip image").clicked() {
+                    create_node(state, NodeTemplate::FlipImage, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("⟳ Rotate image").clicked() {
+                    create_node(state, NodeTemplate::RotateImage, egui::pos2(0.0, 0.0));
                 }
             });
         });
