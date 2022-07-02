@@ -54,6 +54,15 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui, ctx: &egui::Context)
         }
     });
 
+    // Check if we need to update the current selected node
+    responses.node_responses.iter().for_each(|event| {
+        if let NodeResponse::User(Response::ImageFetched) = event {
+            let temp_selected = state.selected_node.node_id;
+            state.selected_node = SelectedNode::default(); // reset node
+            state.selected_node.node_id = temp_selected; // trigger update
+        }
+    });
+
     // Check if the current node was removed
     responses.node_responses.iter().for_each(|event| {
         if let NodeResponse::DeleteNodeUi(deleted_node) = event {
