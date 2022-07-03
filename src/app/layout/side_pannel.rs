@@ -51,6 +51,12 @@ pub fn show(state: &mut state::AppState, ui: &mut egui::Ui) {
                 if ui.button("⟳ Rotate image").clicked() {
                     create_node(state, NodeTemplate::RotateImage, egui::pos2(0.0, 0.0));
                 }
+                if ui.button("🗕 Brightness filter").clicked() {
+                    create_node(state, NodeTemplate::BrightnessFilter, egui::pos2(0.0, 0.0));
+                }
+                if ui.button("🗐 Merge images").clicked() {
+                    create_node(state, NodeTemplate::MergeImages, egui::pos2(0.0, 0.0));
+                }
             });
         });
     });

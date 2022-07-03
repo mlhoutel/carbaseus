@@ -10,12 +10,14 @@ use crate::app::components::display;
 use crate::app::components::input::image_fetcher::Fetcher;
 use crate::app::math::fft;
 use crate::app::math::image::{
-    brighten_image, contrast_image, flip_image, hue_rotate_image, image_blur, image_to_gray,
-    invert_colors_image, rotate_image, ImageSlice, SliceColor,
+    additive_images, brighten_filter, brighten_image, contrast_image, flip_image, hue_rotate_image,
+    image_blur, image_to_gray, invert_colors_image, rotate_image, subtractive_images, ImageSlice,
+    SliceColor,
 };
 use crate::app::state;
 
 const LABEL_IMAGE_IN: &str = "image_in";
+const LABEL_IMAGE_F_IN: &str = "filter_in";
 const LABEL_IMAGE_OUT: &str = "image_out";
 
 const LABEL_INPUT_IMAGE_OUT: &str = "input_image";
@@ -32,6 +34,8 @@ const LABEL_SLICE_S_OUT: &str = "slice_s_out";
 
 const LABEL_BOOLEAN_H_IN: &str = "input_h_in";
 const LABEL_BOOLEAN_V_IN: &str = "input_v_in";
+const LABEL_BOOLEAN_G_IN: &str = "input_g_in";
+const LABEL_BOOLEAN_S_IN: &str = "input_s_in";
 
 const LABEL_SCALAR_SIGMA_IN: &str = "scalar_sigma";
 const _LABEL_COLOR_OUT: &str = "color_out";
@@ -173,6 +177,8 @@ pub enum NodeTemplate {
     HueRotate,
     FlipImage,
     RotateImage,
+    BrightnessFilter,
+    MergeImages,
 }
 
 /// The response type is used to encode side-effects produced when drawing a
@@ -253,6 +259,9 @@ impl NodeTemplateTrait for NodeTemplate {
 
             NodeTemplate::FlipImage => "Flip Image",
             NodeTemplate::RotateImage => "Rotate Image",
+
+            NodeTemplate::BrightnessFilter => "Brightness Filter",
+            NodeTemplate::MergeImages => "Merge Images",
         }
     }
 
@@ -442,6 +451,18 @@ impl NodeTemplateTrait for NodeTemplate {
                 input_integer(graph, LABEL_INTEGER_SIGMA_IN);
                 output_image(graph, LABEL_IMAGE_OUT);
             }
+            NodeTemplate::BrightnessFilter => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_integer(graph, LABEL_INTEGER_SIGMA_IN);
+                input_boolean(graph, LABEL_BOOLEAN_G_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
+            NodeTemplate::MergeImages => {
+                input_image(graph, LABEL_IMAGE_IN);
+                input_image(graph, LABEL_IMAGE_F_IN);
+                input_boolean(graph, LABEL_BOOLEAN_S_IN);
+                output_image(graph, LABEL_IMAGE_OUT);
+            }
         }
     }
 }
@@ -466,6 +487,8 @@ impl NodeTemplateIter for AllNodeTemplates {
             NodeTemplate::ContrastImage,
             NodeTemplate::InvertImage,
             NodeTemplate::HueRotate,
+            NodeTemplate::BrightnessFilter,
+            NodeTemplate::MergeImages,
         ]
     }
 }
@@ -508,9 +531,13 @@ impl WidgetValueTrait for ValueType {
                 });
             }
             ValueType::Boolean { value } => {
-                if ui.checkbox(value, param_name).changed() {
-                    responses.push(Response::BooleanChanged); // Notify when boolean changes
-                }
+                ui.horizontal(|ui| {
+                    ui.label(param_name);
+
+                    if ui.checkbox(value, "").changed() {
+                        responses.push(Response::BooleanChanged); // Notify when boolean changes
+                    }
+                });
             }
         }
         responses
@@ -817,6 +844,28 @@ pub fn evaluate_node(
             let rotated = rotate_image(&image, sigma);
 
             evaluator.output_image(LABEL_IMAGE_OUT, rotated)
+        }
+        NodeTemplate::BrightnessFilter => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let sigma = evaluator.input_integer(LABEL_INTEGER_SIGMA_IN)?;
+            let greater = evaluator.input_boolean(LABEL_BOOLEAN_G_IN)?;
+
+            let filtered = brighten_filter(&image, sigma, greater);
+
+            evaluator.output_image(LABEL_IMAGE_OUT, filtered)
+        }
+        NodeTemplate::MergeImages => {
+            let image = evaluator.input_image(LABEL_IMAGE_IN)?;
+            let filter = evaluator.input_image(LABEL_IMAGE_F_IN)?;
+            let substractive = evaluator.input_boolean(LABEL_BOOLEAN_S_IN)?;
+
+            let merged = if substractive {
+                subtractive_images(&image, &filter)
+            } else {
+                additive_images(&image, &filter)
+            };
+
+            evaluator.output_image(LABEL_IMAGE_OUT, merged)
         }
     }
 }

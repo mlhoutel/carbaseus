@@ -258,3 +258,89 @@ pub fn rotate_image(image: &ColorImage, sigma: i32) -> ColorImage {
 
     image_to_egui(output_image)
 }
+
+pub fn brighten_filter(image: &ColorImage, sigma: i32, greater: bool) -> ColorImage {
+    let mut output_image = image.clone();
+    let i_sigma = sigma.clamp(0, 255) as u8;
+
+    let pixels: Vec<Color32> = output_image
+        .pixels
+        .into_iter()
+        .map(|px| {
+            let filter = px.r() > i_sigma || px.g() > i_sigma || px.g() > i_sigma;
+            /*
+                Exclusive OR
+                F G R
+                0 0 0
+                0 1 1
+                1 0 1
+                1 1 0
+            */
+            if filter ^ greater {
+                px
+            } else {
+                Color32::BLACK
+            }
+        })
+        .collect();
+
+    output_image.pixels = pixels;
+
+    output_image
+}
+
+pub fn apply_between_pixels(
+    image: &ColorImage,
+    filter: &ColorImage,
+    f: fn(px: Color32, fx: Color32) -> Color32,
+) -> ColorImage {
+    let mut output_image = image.clone();
+
+    let size = if image.pixels.len() > filter.pixels.len() {
+        filter.pixels.len()
+    } else {
+        image.pixels.len()
+    }; // Min length
+
+    for i in 0..size {
+        let px = image.pixels[i];
+        let fx = filter.pixels[i];
+        output_image.pixels[i] = f(px, fx);
+    }
+
+    output_image
+}
+
+pub fn additive_images(image: &ColorImage, filter: &ColorImage) -> ColorImage {
+    apply_between_pixels(image, filter, |px, fx| {
+        Color32::from_rgb(
+            (px.r() as i32 + fx.r() as i32).clamp(0, 255) as u8,
+            (px.g() as i32 + fx.g() as i32).clamp(0, 255) as u8,
+            (px.b() as i32 + fx.b() as i32).clamp(0, 255) as u8,
+        )
+    })
+}
+
+pub fn subtractive_images(image: &ColorImage, filter: &ColorImage) -> ColorImage {
+    apply_between_pixels(image, filter, |px, fx| {
+        Color32::from_rgb(
+            (px.r() as i32 - fx.r() as i32).clamp(0, 255) as u8,
+            (px.g() as i32 - fx.g() as i32).clamp(0, 255) as u8,
+            (px.b() as i32 - fx.b() as i32).clamp(0, 255) as u8,
+        )
+    })
+}
+
+pub fn _replace_pixels(image: &ColorImage, filter: &ColorImage) -> ColorImage {
+    apply_between_pixels(
+        image,
+        filter,
+        |px, fx| {
+            if fx == Color32::BLACK {
+                px
+            } else {
+                fx
+            }
+        },
+    )
+}
